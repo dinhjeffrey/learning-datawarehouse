@@ -41,3 +41,24 @@ use COALESCE and not ISNULL,
 use CURRENT_TIMESTAMP and not GETDATE, 
 and use CASE and not IIF.
 */
+
+
+
+/*
+Using the REPLICATE function, 
+you generate a string made of 10 zeros. 
+Next you concatenate the character form of the product ID. 
+Then you extract the 10 rightmost characters from the result string.
+*/
+
+/*
+The subquery uses a correlation in the                                                                                              category ID is equal to the one in the outer row. So when the outer row has category ID 1,                                                                                                 when the outer row has category ID 2, the inner query returns the minimum unit price out of                                                    
+*/
+
+SELECT categoryid, productid, productname, unitprice
+FROM Production.Products AS P1
+WHERE unitprice =
+  (SELECT MIN(unitprice)
+   FROM Production.Products AS P2
+   WHERE P2.categoryid = P1.categoryid)
+   ;
