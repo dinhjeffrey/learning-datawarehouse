@@ -62,3 +62,18 @@ WHERE unitprice =
    FROM Production.Products AS P2
    WHERE P2.categoryid = P1.categoryid)
    ;
+
+
+
+/*
+The thing with the ROW_NUMBER function—and window functions in general—is that they are only allowed in the SELECT and ORDER BY clauses of a query. So, what if you want to                                                                                                                                                                                           to return the two products with the lowest unit prices, with the product ID used as a tiebreak- er. You are not allowed to refer to the ROW_NUMBER function in the query’s WHERE clause. Remember also that according to logical query processing, you’re not allowed to refer to a column alias that was assigned in the SELECT list in the WHERE clause, because the WHERE clause is conceptually evaluated before the SELECT clause.
+You can circumvent the restriction by using a table expression. You write a query such as the previous query that computes the window function in the SELECT clause:                                                                                           and refer to the column alias in the outer query’s WHERE clause, as follows.
+*/
+
+SELECT categoryid, productid, productname, unitprice
+FROM (SELECT
+        ROW_NUMBER() OVER(PARTITION BY categoryid
+                          ORDER BY unitprice, productid) AS rownum,
+        categoryid, productid, productname, unitprice
+      FROM Production.Products) AS D
+WHERE rownum <= 2;
