@@ -77,3 +77,82 @@ FROM (SELECT
         categoryid, productid, productname, unitprice
       FROM Production.Products) AS D
 WHERE rownum <= 2;
+
+
+/*
+With CTEs, you first name the CTE, then specify the inner query, and then the outer query - a much more modular approach.
+*/
+
+WITH <CTE_name>
+AS
+(
+  <inner_query>
+)
+<outer_query>;
+
+/*
+As you can see, it’s a similar concept to derived tables, except the inner query is not defined in the middle of the outer query; instead you define the 
+inner query from start to end—then the outer query—from start to end. This design leads to much clearer code that is easier to understand.
+*/
+
+WITH C AS (
+  SELECT
+    ROW_NUMBER() OVER(PARTITION BY categoryid
+                      ORDER BY unitprice, productid) AS rownum,
+    categoryid, productid, productname, unitprice
+  FROM Production.Products
+)
+SELECT categoryid, productid, productname, unitprice
+FROM C
+WHERE rownum <= 2;
+
+/*
+As you can see, the anchor member returns the row for employee 9. Then the recursive 
+member is invoked repeatedly, and in each round joins the previous result set with the HR.Employees table 
+to return the direct manager of the employee from the previous round.                                                                                                                                                                                          the anchor member (the row for employee 9) and all invocations of the recursive member (all managers above employee 9).
+*/
+
+WITH EmpsCTE AS
+(
+  SELECT empid, mgrid, firstname, lastname, 0 AS distance
+  FROM HR.Employees
+  WHERE empid = 9
+UNION ALL
+  SELECT M.empid, M.mgrid, M.firstname, M.lastname, S.distance + 1 AS distance
+  FROM EmpsCTE AS S
+    JOIN HR.Employees AS M
+      ON S.mgrid = M.empid
+)
+SELECT empid, mgrid, firstname, lastname, distance
+FROM EmpsCTE
+;
+
+/*
+Stored objects in database for re-usability:
+
+Views - doesn’t accept input parameters
+Inline Table-Valued Functions - accepts input parameters
+*/
+
+/*
+Definition is stored in database; not the result set of the view.
+*/
+
+if object_id('sales.rankedproducts', 'V') is not null drop view sales.rankedproducts
+;
+go
+create view sales.rankedproducts
+as
+
+select 
+	row_number() over(partition by categoryid
+		order by unitprice, productid) as rownum,
+		categoryid, productid, productname, unitprice
+from production.products
+;
+go
+
+/*
+What’s special about the CROSS APPLY op- erator as compared to OUTER APPLY 
+is that if the right table expression returns an empty set for a left row, the left row isn’t returned. 
+*/
