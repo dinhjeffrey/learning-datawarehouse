@@ -156,3 +156,90 @@ go
 What’s special about the CROSS APPLY op- erator as compared to OUTER APPLY 
 is that if the right table expression returns an empty set for a left row, the left row isn’t returned. 
 */
+
+/* What is the difference between self-contained and correlated subqueries?
+Self-contained subqueries are independent of the outer query, 
+whereas cor- related subqueries have a reference to an element from the table in the outer query.
+*/
+
+/* What is the difference between APPLY and JOIN operators?
+With a JOIN operator, both inputs represent static relations. With APPLY, the left side is a static relation, 
+but the right side can be a table expression with correlations to elements from the left table.
+*/
+
+/*
+The next step in the solution is to de ne a CTE based on the previous query, 
+and then join the CTE to the Production.Products table to return per each category the products with the minimum unit price. 
+This step can be achieved with the following code.
+*/
+with CatMin as
+(
+select categoryid, min(unitprice) as mn
+from production.products
+group by categoryid
+)
+select p.categoryid, p.productid, p.productname, p.unitprice
+from production.products as p
+	inner join CatMin as m
+	on p.categoryid = m.categoryid
+	and p.unitprice = m.mn
+;
+
+
+/*
+Define an inline table-valued function that accepts a supplier ID as input (@supplierid), in addition to a number (@n), 
+and returns the @n products with the lowest prices for the input supplier. 
+In case of ties in the unit price, use the product ID as the tiebreaker. Use the following code to de ne the function.
+*/
+
+IF OBJECT_ID('Production.GetTopProducts', 'IF') IS NOT NULL DROP FUNCTION
+Production.GetTopProducts;
+go
+create function Production.GetTopProducts(@supplierid as int, @n as bigint)
+returns table
+as
+
+return 
+	select productid, productname, unitprice
+	from production.products 
+	where supplierid = @supplierid
+	order by unitprice, productid
+	offset 0 rows fetch first @n rows only;
+go
+
+select * from production.GetTopProducts(1,2) as P;
+
+
+/*
+Next, return per each supplier from Japan the two products with the lowest prices. 
+To achieve this, use the CROSS APPLY operator, with Production.Suppliers as the left side and 
+the Production.GetTopProducts function as the right side, as follows.
+*/
+
+select s.supplierid, s.companyname as supplier, a.*
+from production.suppliers as s
+	cross apply Production.GetTopProducts(s.supplierid, 2) as a
+where s.country = N'Japan'
+;
+
+
+/* Chapter 5
+The lessons in this chapter cover grouped queries and pivoting and unpivoting of data. 
+Pivoting can be considered a specialized form of grouping, and unpivoting can be consid- ered the inverse of pivoting. 
+This chapter also covers windowed queries.
+
+Grouped queries return one result row per group, and because the query de nes only one group, it returns only one row in the result set.
+ie. count(*), group by, group functions
+*/
+
+/*
+suppose that you need to group only shipped orders by shipper ID and shipping year, and  filter only groups having fewer than 100 orders.
+*/
+select shipperid, year(shippeddate) as shippedyear, count(*) as numorders
+from sales.orders
+where shippeddate is not null
+group by shipperid, year(shippeddate)
+having count(*) < 100
+;
+
+
