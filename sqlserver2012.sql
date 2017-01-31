@@ -243,3 +243,14 @@ having count(*) < 100
 ;
 
 
+
+
+/*
+ What makes a query a grouped query?
+2. What are the clauses that you can use to de ne multiple grouping sets in the
+same query?
+Quick Check Answer
+1. When you use an aggregate function, a GROUP BY clause, or both. 2. GROUPING SETS, CUBE, and ROLLUP.
+*/
+
+
