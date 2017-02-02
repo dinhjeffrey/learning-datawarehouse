@@ -253,4 +253,28 @@ Quick Check Answer
 1. When you use an aggregate function, a GROUP BY clause, or both. 2. GROUPING SETS, CUBE, and ROLLUP.
 */
 
+select c.custid, c.city, count(*) as numorders
+from sales.customers as c
+	inner join sales.orders as o
+		on c.custid = o.custid
+	where c.country = N'Spain'
+	group by grouping sets ((c.custid, c.city), () )
+	order by grouping(c.custid);
+
+
+/*
+Chapter 5, Lesson 2: Pivot and Unpivot
+*/
+WITH PivotData AS
+(
+  SELECT
+    custid   , -- grouping column
+    shipperid, -- spreading column
+    freight    -- aggregation column
+  FROM Sales.Orders
+)
+SELECT custid, [1], [2], [3]
+FROM PivotData
+  PIVOT(SUM(freight) FOR shipperid IN ([1],[2],[3]) ) AS P;
+
 
