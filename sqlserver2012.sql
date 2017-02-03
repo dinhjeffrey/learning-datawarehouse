@@ -277,4 +277,238 @@ SELECT custid, [1], [2], [3]
 FROM PivotData
   PIVOT(SUM(freight) FOR shipperid IN ([1],[2],[3]) ) AS P;
 
+/*
+why use table expression with pivot?
+By defining
+a table expression as was shown in the recommended solution, you control which columns will be used as the grouping columns. 
+If you return custid, shipperid, and freight in the table expression, and use the last two as the spreading and aggregation elements, 
+respectively, the PIVOT operator implicitly assumes that custid is the grouping element. Therefore, it groups the data by custid, and as a result, 
+returns a single row per customer.
+*/
 
+/* 
+unpivot
+*/
+SELECT custid, shipperid, freight
+FROM Sales.FreightTotals
+  UNPIVOT( freight FOR shipperid IN([1],[2],[3]) ) AS U;
+
+/*
+pivot - rows -> columns
+unpivot - columns -> rows
+language constructs? table operators
+*/
+
+
+/*
+returns the maximum shipping date for each order year and shipper ID
+*/
+
+with PivotData as 
+(
+select
+	year(orderdate) as orderyear, --grouping column
+	shipperid, --spreading column
+	shippeddate -- aggregation column
+from sales.orders
+)
+select orderyear, [1], [2], [3]
+from PivotData
+	pivot( max(shippeddate) for shipperid in ([1],[2],[3]) ) as p; 
+
+/*
+Window function
+One of the benefits of using window functions is that unlike grouped queries, windowed queries do not hide the detail—they return a row for every underlying query’s row. 
+This means that you can mix detail and aggregated elements in the same query, and even in the same expression. Using the OVER clause, you de ne a set of rows for the function 
+to work with per each underlying row. In other words, a windowed query de nes a window of rows per each function and row in the underlying query.
+*/
+
+SELECT custid, orderid,
+  val,
+  SUM(val) OVER(PARTITION BY custid) AS custtotal,
+  SUM(val) OVER() AS grandtotal
+FROM Sales.OrderValues;
+
+/*
+Framing - Window aggregate filtering option
+Window aggregate functions support another  filtering option called framing. The idea
+is that you define ordering within the partition by using a window order clause, 
+and then based on that order, you can confine a frame of rows between two delimiters. 
+You define the delimiters by using a window frame clause. The window frame clause requires
+ a window order clause to be present because a set has no order, and without order, limiting rows 
+ between two delimiters would have no meaning.
+
+
+ With the ROWS window frame unit, you can indi- cate the delimiters as one of three options:
+■  UNBOUNDED PRECEDING or FOLLOWING, meaning the beginning or end of the parti- tion, respectively
+■  CURRENT ROW, obviously representing the current row
+■  <n> ROWS PRECEDING or FOLLOWING, meaning n rows before or after the current,
+respectively
+*/
+
+/*
+As an example, suppose that you wanted to query the Sales.OrderValues view and com- pute the running total values from the 
+beginning of the current customer’s activity until the current order. You need to use the SUM aggregate. You partition the 
+window by custid. You order the window by orderdate, orderid. You then frame the rows from the beginning of the 
+partition (UNBOUNDED PRECEDING) until the current row. Your query should look like the following.
+*/
+
+select custid, orderid, orderdate, val,
+	sum(val) over(partition by custid
+			order by orderdate, orderid
+			rows between unbounded preceding
+				 and current row) as runningtotal
+from sales.ordervalues;
+
+/*
+window ranking functions
+
+T-SQL supports four window ranking functions: ROW_NUMBER, RANK, DENSE_RANK, and NTILE.
+*/
+
+
+SELECT custid, orderid, val,
+  ROW_NUMBER() OVER(ORDER BY val) AS rownum,
+  RANK()       OVER(ORDER BY val) AS rnk,
+  DENSE_RANK() OVER(ORDER BY val) AS densernk,
+  NTILE(100)   OVER(ORDER BY val) AS ntile100
+FROM Sales.OrderValues;
+
+/*
+window offset functions
+
+T-SQL supports the following window offset functions: LAG, LEAD, FIRST_VALUE, and LAST_VALUE.
+*/
+
+select custid, orderid, val,
+	lag(val) over(partition by custid
+		order by orderdate, orderid)as prev_val,
+	lead(val) over(partition by custid
+		order by orderdate, orderid) as next_val
+	from sales.OrderValues;
+
+select custid, orderid, orderdate, val,
+	first_value(val) over(partition by custid
+		order by orderdate, orderid
+		rows between unbounded preceding
+			and current row) as first_val,
+	LAST_VALUE(val) over(partition by custid
+		order by orderdate, orderid
+		rows between current row
+			and unbounded following) as last_val
+	from sales.OrderValues;
+
+/*
+1. What are the clauses that the different types of window functions support?
+-> Partitioning, ordering, and framing clauses.
+
+2. What do the delimiters UNBOUNDED PRECEDING and UNBOUNDED FOLLOW-
+ING represent?
+-> The beginning and end of the partition, respectively.
+*/
+
+
+/* exercise 1 Use Window aggregate Functions
+Write a query against the Sales.OrderValues view that returns per each customer and 
+order the moving average value of the customer's last three orders
+*/
+
+select custid, orderid, orderdate, val,
+	avg(val) over(partition by custid
+		order by orderdate, orderid
+		rows between 2 preceding
+			and current row) as movingavg
+	from sales.OrderValues;
+
+/*
+write a query against the Sales.Orders table, and  filter the three orders with the highest freight values
+ per each shipper using orderid as the tiebreaker.
+*/
+
+with c as
+(
+	select shipperid, orderid, freight,
+		row_number() over(partition by shipperid
+				order by freight desc, orderid) as rownum
+	from sales.orders
+)
+select shipperid, orderid, freight
+from c
+where rownum <= 3
+order by shipperid, rownum;
+
+
+/*
+You need to compute the differ- ence between the current order value and the value of the customer's previous order, 
+in addition to the difference between the current order value and the value of the customer's next order.
+*/
+
+select custid, orderid, orderdate, val,
+	val - lag(val) over(partition by custid
+		order by orderdate, orderid) as diffprev,
+	val - lead(val) over(partition by custid
+		order by orderdate, orderid) as diffnext
+	from sales.OrderValues;
+
+/*
+Lesson Summary
+■  Window functions perform data analysis computations. They operate on a set of rows de ned for each underlying 
+	row by using a clause called OVER.
+■  Unlike grouped queries, which hide the detail rows and return only one row per group, windowed queries 
+	do not hide the detail. They return a row per each row in the underlying query, and allow mixing detail 
+	elements and window functions in the same expressions.
+■  T-SQL supports window aggregate, ranking, and offset functions. All window functions support window 
+	partition and window order clauses. Aggregate window functions, in addition to FIRST_VALUE and LAST_VALUE, 
+	also support a window frame clause.
+*/
+
+/* Chapter 6: Querying full text data
+Can you store indexes from the same full-text catalog to different  legroups? Quick Check Answer
+■  Yes. A full-text catalog is a virtual object only; full-text indexes are physical ob- jects. You can store each full-text index from the same catalog to a different  le group.
+*/
+
+/* CONTAINS and FREETEXT
+ How do you search for synonyms of a word with the CONTAINS predicate? 2. Which is a more speci c predicate, CONTAINS or FREETEXT?
+Quick Check Answers
+1. You have to use the CONTAINS(FTcolumn, ‘FORMSOF(THESAURUS, SearchWord1)’) syntax.
+2. You use the CONTAINS predicate for more speci c searches.
+
+*/
+
+/*
+
+■  How many full-text search and how many semantic search functions are supported by SQL Server?
+Quick Check Answer
+■  SQL Server supports two full-text search and three semantic search functions
+*/
+
+/*
+XML
+*/
+
+WITH XMLNAMESPACES('TK461-CustomersOrders' AS co)
+SELECT [co:Customer].custid AS [co:custid],
+ [co:Customer].companyname AS [co:companyname],
+ [co:Order].orderid AS [co:orderid],
+ [co:Order].orderdate AS [co:orderdate]
+FROM Sales.Customers AS [co:Customer]
+ INNER JOIN Sales.Orders AS [co:Order]
+  ON [co:Customer].custid = [co:Order].custid
+WHERE [co:Customer].custid <= 2
+  AND [co:Order].orderid %2 = 0
+ORDER BY [co:Customer].custid, [co:Order].orderid
+FOR XML AUTO, ELEMENTS, ROOT('CustomersOrders');
+
+/*
+How can you get an XSD schema together with an XML document from your SELECT statement?
+Quick Check Answer
+■  You should use the XMLSCHEMA directive in the FOR XML clause.
+*/
+
+/*
+1. What do you do in the return clause of the FLWOR expressions? 
+2. What would be the result of the expression (12, 4, 7) != 7?
+Quick Check Answers
+1. In the return clause, you format the resulting XML of a query. 
+2. The result would be true.
+*/
