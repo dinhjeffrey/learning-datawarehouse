@@ -512,3 +512,51 @@ Quick Check Answers
 1. In the return clause, you format the resulting XML of a query. 
 2. The result would be true.
 */
+
+use TSQL2012;
+
+DECLARE @x AS XML;
+SET @x = N'
+<CustomersOrders>
+  <Customer custid="1">
+    <!-- Comment 111 -->
+    <companyname>Customer NRZBB</companyname>
+    <Order orderid="10692">
+      <orderdate>2007-10-03T00:00:00</orderdate>
+    </Order>
+    <Order orderid="10702">
+      <orderdate>2007-10-13T00:00:00</orderdate>
+    </Order>
+    <Order orderid="10952">
+      <orderdate>2008-03-16T00:00:00</orderdate>
+    </Order>
+  </Customer>
+  <Customer custid="2">
+    <!-- Comment 222 -->
+    <companyname>Customer MLTDN</companyname>
+    <Order orderid="10308">
+      <orderdate>2006-09-18T00:00:00</orderdate>
+    </Order>
+    <Order orderid="10952">
+      <orderdate>2008-03-04T00:00:00</orderdate>
+    </Order>
+  </Customer>
+</CustomersOrders>';
+/*
+Write a query that selects Customer nodes with child nodes. Select principal nodes (elements in this context) only. The result should be similar to the abbreviated result here.
+1. Principal nodes
+--------------------------------------------------------------------------------
+<companyname>Customer NRZBB</companyname><Order orderid="10692"><orderdate>2007-
+Use the following query to get the desired result.
+*/
+SELECT @x.query('CustomersOrders/Customer/*')
+       AS [1. Principal nodes];
+
+/*
+ 2. All nodes
+      --------------------------------------------------------------------------------
+      <!-- Comment 111 --><companyname>Customer NRZBB</companyname><Order orderid="106
+*/
+
+select @x.query('CustomersOrders/Customer/node()')
+	as [2. all nodes];
