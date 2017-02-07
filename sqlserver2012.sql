@@ -560,3 +560,129 @@ SELECT @x.query('CustomersOrders/Customer/*')
 
 select @x.query('CustomersOrders/Customer/node()')
 	as [2. all nodes];
+
+
+/*
+nodes
+
+a. Asterisk (*)
+B. comment()
+c. node()
+D. text()
+
+E. value()
+
+A. With the asterisk (*), you retrieve all principal nodes. 
+B. With comment(), you retrieve comment nodes.
+c. You use the node() node-type test to retrieve all nodes. 
+D. With text(), you retrieve text nodes.
+
+E. retrieve scalar values
+*/
+
+/*
+XML Indexes
+
+■ path This secondary XML index is especially useful if your queries specify path ex- pressions. It speeds up the exist() method better than the Primary XML index. Such an index also speeds up queries that use value() for a fully speci ed path.
+■ vaLue This secondary XML index is useful if queries are value-based and the path is not fully speci ed or it includes a wildcard.
+■ prOperty This secondary XML index is very useful for queries that retrieve one or more values from individual XML instances by using the value() method.
+*/
+
+/*
+Write a query that retrieves the  rst customer name as a scalar value. The result should be similar to the result here.
+    First Customer Name
+    --------------------
+    Customer NRZBB
+*/
+
+select @x.value('(/CustomersOrders/Customer/companyname)[1]',
+	'NVARCHAR(20)')
+	as [First Customer Name];
+
+/*
+Now check whether companyname and address nodes exist under the Customer node. The result should be similar to the result here.
+Company Name Exists Address Exists 
+------------------- -------------- 
+1					0
+*/
+
+select @x.exist('(/CustomersOrders/Customer/companyname)')
+	as [Company Name Exists],
+	@x.exist('(/CustomersOrders/Customer/address)')
+	as [Address Exists];
+
+/*
+Return all orders for the  rst customer as XML.
+*/
+
+select @x.query('//Customer[@custid=1]/Order')
+	as [Customer 1 orders];
+
+/*
+Shred all orders information for the  rst customer.
+*/
+
+select T.c.value('./@orderid[1]', 'INT') as [Order Id],
+	T.c.value('./orderdate[1]', 'DATETIME') as [Order Date]
+	from @x.nodes('//Customer[@custid=1]/Order')
+	as T(c);
+
+/*
+Update the name of the  first customer and then retrieve the new name
+*/
+
+set @x.modify('replace value of 
+	/CustomersOrders[1]/Customer[1]/companyname[1]/text()[1]
+	with "New Company Name"');
+select @x.value('(/CustomersOrders/Customer/companyname)[1]',
+	'NVARCHAR(20)')
+	as [First Customer New Name];
+
+
+/*
+Nodes:
+You use the modify() method to update XML data.
+You use the nodes() method to shred XML data.
+You use the exist() method to test whether a node exists.
+You use the value() method to retrieve a scalar value from XML data.
+*/
+
+
+/*
+1. How would you make the schema of the Products table dynamic?
+2. How would you ensure that at least basic constraints would be enforced?
+
+1. You could use the XML data type column to store the variable attributes in XML format.
+2. You could validate the XML against an XML schema collection.
+*/
+
+-- Create table Production.Categories
+
+go 
+create table production.categoriestest
+(
+categoryid int not null identity
+) 
+go
+
+alter table production.categoriestest
+	add categoryname nvarchar(15) not null;
+go
+alter table production.categoriestest
+	add description nvarchar(200) not null;
+go
+
+-- select * from Production.categoriestest
+
+/* 
+Now you attempt an insert into the copy table from the original table, but the Insert will fail. So
+we gotta use IDENTITY_INSERT ON, which allows a row to be inserted with an explicit identity value.
+*/
+
+set identity_insert production.categoriestest on;
+insert production.categoriestest (categoryid, categoryname, description)
+	select categoryid, categoryname, description
+	from production.categories;
+go
+set identity_insert production.categoriestest off;
+go
