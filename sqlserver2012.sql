@@ -686,3 +686,50 @@ insert production.categoriestest (categoryid, categoryname, description)
 go
 set identity_insert production.categoriestest off;
 go
+
+
+/*
+Practice
+*/
+
+use TSQL2012;
+
+-- Create table Production.CategoriesTest
+create table production.categoriestest
+(
+	categoryid int not null identity,
+	categoryname nvarchar(15) not null,
+	description nvarchar(200) not null,
+);
+
+-- Populate the table Production.CategoriesTest
+set identity_insert production.categoriestest on;
+insert production.categoriestest (categoryid, categoryname, description)
+	select categoryid, categoryname, description
+	from production.categories;
+go
+set identity_insert production.categoriestest off;
+go
+
+-- make column longer
+alter table production.categoriestest
+	alter column description nvarchar(500);
+go
+
+-- set a value in description to null
+UPDATE Production.CategoriesTest
+        SET description = 'seafood and fish'
+        WHERE categoryid = 8;
+GO
+
+-- alter table to allow null values
+alter table production.categoriestest
+	alter column description nvarchar(500) not null;
+go
+
+-- clean up
+if object_id('production.categoriestest', 'U') is not null
+	drop table production.categoriestest;
+go
+
+select * from Production.categoriestest;
