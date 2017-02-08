@@ -675,7 +675,7 @@ go
 -- select * from Production.categoriestest
 
 /* 
-Now you attempt an insert into the copy table from the original table, but the Insert will fail. So
+Now you attempt an insert into the copy table from the original table, but the insert will fail. So
 we gotta use IDENTITY_INSERT ON, which allows a row to be inserted with an explicit identity value.
 */
 
