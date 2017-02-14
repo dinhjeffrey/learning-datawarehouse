@@ -733,3 +733,177 @@ if object_id('production.categoriestest', 'U') is not null
 go
 
 select * from Production.categoriestest;
+
+
+-- lists all primary keys in db
+SELECT *
+FROM sys.key_constraints
+WHERE type = 'pk';
+
+--
+SELECT *
+FROM sys.indexes
+WHERE object_id = OBJECT_ID('Production.Categories') AND name = 'PK_Categories';
+
+-- unique constraint, similar to primary key. They both create unique indexes
+alter table production.categories 
+	add constraint UC_Categories unique (categoryname);
+go
+
+select * from production.Categories
+
+/*
+What types of views are available in T-SQL?
+
+regular views, indexed views, and partitioned views
+*/
+
+/*
+ 1. What type of data does an inline function return? 
+ 2. What type of view can an inline function simulate?
+Quick Check Answer
+1. Inline functions return tables, and accordingly, are often referred to as inline table-valued functions.
+2. An inline table-valued function can simulate a parameterized view—that is, a view that takes parameters.
+*/
+
+/*
+views
+*/
+
+GO
+CREATE VIEW Sales.OrderTotalsByYear
+  WITH SCHEMABINDING
+AS
+SELECT
+  YEAR(O.orderdate) AS orderyear,
+  SUM(OD.qty) AS qty
+FROM Sales.Orders AS O
+  JOIN Sales.OrderDetails AS OD
+    ON OD.orderid = O.orderid
+GROUP BY YEAR(orderdate);
+GO
+
+-- create view
+go 
+create view sales.ordertotalsbyyear
+	with schemabinding
+as 
+select
+	year(o.orderdate) as orderyear,
+	sum(od.qty) as qty
+from sales.orders as o
+	join sales.orderdetails as od
+		on od.orderid = o.orderid
+group by year(orderdate);
+go
+
+-- SCHEMABINDING, which guarantees that the underlying table structures cannot be altered without dropping the view.
+
+
+-- Turn this into a view called sales.Ordertotalsbyyearcustship.
+if object_id(N'sales.ordertotalsbyyearcustship', N'V') is not null
+	drop view sales.OrderTotalsByYearcustship;
+go
+create view sales.ordertotalsbyyearcustship
+	with schemabinding
+as
+select
+c.companyname as customercompany,
+s.companyname as shippercompany,
+year(o.orderdate) as orderyear,
+sum(od.qty) as qty,
+cast(sum(od.qty * od.unitprice * (1 - od.discount))
+	as numeric(12, 2)) as val
+from sales.orders as o
+	join sales.orderdetails as od
+	on od.orderid = o.orderid
+	join sales.customers as c
+	on o.custid = c.custid
+	join sales.shippers as s
+	on o.shipperid = s.shipperid
+	group by year(o.orderdate), c.companyname, s.companyname;
+go
+ 
+select * from sales.ordertotalsbyyearcustship;
+
+-- drop view
+if object_id('sales.ordertotalsbyyearcustship', N'V') is not null
+	drop view sales.ordertotalsbyyearcustship;
+
+/*
+synonyms
+
+1. Does a synonym store T-SQL or any data? 
+2. Can synonyms be altered?
+Quick Check Answer
+1. No, a synonym is just a name. All that is stored with a synonym is the object it refers to.
+2. No, to change a synonym, you must drop and recreate it.
+
+*/
+
+/*
+synonym
+
+--Create a special schema for reports. 
+create schema reports authorization dbo;
+go
+
+-- Create a synonym for the Sales.CustOrders view in the TSQL2012 database. Look  first at the data.
+ SELECT custid, ordermonth, qty FROM Sales.CustOrders;
+
+-- You have determined that the data actually shows the customer ID, then the total of the qty column, by month. Therefore, create the totalcustQtybyMonth synonym and test it.
+create synonym reports.totalcustqtybymonth for sales.custorders;
+select custid, ordermonth, qty from reports.totalcustqtybymonth;     
+
+
+
+*/
+
+
+/*
+synonym 
+
+■ A synonym is a name that refers to another database object such as a table, view, func- tion, or stored procedure.
+■ No T-SQL code or any data is stored with a synonym. Only the object referenced is stored with a synonym.
+■ Synonyms are scoped to a database, and therefore are in the same namespace as the objects they refer to. Consequently, you cannot name a synonym the same as any other database object.
+■ Synonym chaining is not allowed; a synonym cannot refer to another synonym.
+■ Synonyms do not expose any metadata of the objects they reference.
+■ Synonyms can be used to provide an abstraction layer to the user by presenting differ- ent names for database objects.
+■ You can modify data through a synonym, but you cannot alter the underlying object.
+■ To change a synonym, you must drop and recreate it.
+
+■ Synonyms can reference objects in other databases or through linked servers.
+■ Synonyms can be created to refer to database objects that do not yet exist.
+*/
+
+/* Case scenario 1
+■ To remove the need for developers working with complex joins, you can present them with views and inline functions that hide the complexity of the joins. Because they will use stored procedures to update data, you do not need to ensure that the views are updatable.
+■ You can change the names or de nitions of views and change table names without af- fecting the application if the application refers to synonyms. You will have to drop and recreate the synonym when the underlying table or view has a name change, and that will have to be done when the application is of ine.
+■ You can use inline functions to provide viewlike objects that can be  ltered by param- eters. Stored procedures are not required because users can reference the inline func- tion in the FROM clause of a query.
+*/
+
+/* Case scenario 2
+1. To  lter the data coming from the table, you can create a view or inline function that  l- ters the data appropriately, and recreate the synonym to reference the view or function.
+2. To keep synonyms working even if column names of a table are changed, you can cre- ate a view that refers to the tables and recreate the synonym to refer to the view.
+3. Synonyms cannot expose metadata. Therefore, when browsing a database in SSMS, users will not see column names and their data types under the synonym. In order to enable users to see the column data types of the underlying data tables, you must replace the synonym with a view.
+*/
+
+/*
+1. Why is it recommended to specify the target column names in INSERT statements?
+2. What is the difference between SELECT INTO and INSERT SELECT? Quick Check Answer
+1. Also, you won’t be affected if the column order is rearranged due                                                                                 automatically are added.
+2. SELECT INTO creates the target table and inserts into it the result of the query. INSERT SELECT inserts the result of the query into an already existing table
+
+*/
+
+/*
+
+■ SQL Server provides two features to help you generate a sequence of keys: the IDEN- TITY column property and the sequence object.
+■ The IDENTITY column property is de ned with a seed and an increment. When you insert a new row into the target table, you don’t specify a value for the IDENTITY col- umn; instead, SQL Server generates it for you automatically.
+■ To get the newly generated identity value, you can query the functions SCOPE_IDENTITY, @@IDENTITY, and IDENT_CURRENT. The  rst returns the last identity value generated by your session and scope. The second returns the last identity value generated by your session. The third returns the last identity value generated in the input table.
+■ The sequence object is an independent object in the database. It is not tied to a spe- ci c column in a speci c table.
+■ The sequence object supports de ning the start value, increment value, minimum and maximum supported values, cycling, and caching.
+■ You use the NEXT VALUE FOR function to request a new value from the sequence. You can use this function in INSERT and UPDATE statements, DEFAULT constraints, and as- signments to variables.
+■ The sequence object circumvents many of the restrictions of the IDENTITY property.
+
+*/
