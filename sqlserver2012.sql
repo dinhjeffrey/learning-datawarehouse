@@ -907,3 +907,13 @@ synonym
 ■ The sequence object circumvents many of the restrictions of the IDENTITY property.
 
 */
+
+/*
+1. What is the purpose of the ON clause in the MERGE statement?
+2. What are the possible actions in the WHEN MATCHED clause?
+3. How many WHEN MATCHED clauses can a single MERGE statement have?
+Quick Check Answer
+1. The ON clause determines whether a source row is matched by a target row, and whether a target row is matched by a source row. Based on the result of the predicate, the MERGE statement knows which WHEN clause to activate and as a result, which action to take against the target.
+2. UPDATE and DELETE.
+3. Two—one with an UPDATE action and one with a DELETE action.
+*/
