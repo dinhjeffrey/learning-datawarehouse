@@ -908,7 +908,7 @@ synonym
 
 */
 
-/*
+/* Merge
 1. What is the purpose of the ON clause in the MERGE statement?
 2. What are the possible actions in the WHEN MATCHED clause?
 3. How many WHEN MATCHED clauses can a single MERGE statement have?
@@ -917,3 +917,4 @@ Quick Check Answer
 2. UPDATE and DELETE.
 3. Two—one with an UPDATE action and one with a DELETE action.
 */
+
