@@ -133,7 +133,42 @@ and cte.createdDateTime > p.CreatedDateTime;
 -- ensure that callers that do not have permissions can execute the stored procedure
 EXECUTE AS OWNER;
 
+-- Status info must be logged to a status table
+-- If the status table does not exist at the beginning of the batch, it must be created.
+-- ans: stored procedure
 
+-- partition number must:
+-- always start with 1
+-- start again from 1 after it reaches 100
+CREATE SEQUENCE CustomerSequence AS int
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 100
+CYCLE
+UPDATE Customers SET PartitionNumber = NEXT VALUE FOR CustomerSequence
+DROP SEQUENCE CustomerSequence
 
+-- Id is the Primary Key
+-- You need to append the "This is in a draft stage" string to the summary column
+-- of the recent 10 entries based on the values in EntryDateTime
+UPDATE BlogEntry
+SET Summary.WRITE(N'This is in a draft stage', NULL, 0) FROM (
+SELECT TOP(10) Id FROM BlogEntry ORDER BY EntryDateTime DESC) as s
+where BlogEntry.Id = s.ID
+
+-- when DeleteJobCandidate encounters error, the execution of the stored procedure reports the error number
+DECLARE @ErrorVar INT;
+DECLARE @RowCountVar INT;
+EXEC DeleteJobCandidate
+SELECT @ErrorVar = @@ERROR, @RowCountVar = @@ROWCOUNT;
+IF (@ErrorVar <> 0)
+PRINT N'Error = ' + CAST(@@ErrorVar AS NVARCHAR(8)) + 
+N', Rows Deleted = ' + CAST(@@RowCountVar AS NVARCHAR(8))
+GO
+
+-- when DELETE statement succeeds, the modification is retained
+-- even if insert into the Audit.Log table fails
+IF (XACT_STATE()) = 1
 
 
