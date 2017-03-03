@@ -188,3 +188,27 @@ AS BadCast
 -- if stored procedure raises a runtime error, the entire transaction is terminated and rolled back
 SET XACT_ABORT ON
 
+-- sum total
+create table Inventory
+(ItemID int not null primary key,
+ItemsInStore int not null,
+ItemsInWarehouse int not null)
+
+alter table inventory
+add TotalItems as ItemsInStore + ItemsInWarehouse
+
+
+-- need to improve performance of view by persisting data to disk
+-- **create a clustered index on the view
+
+-- you need to store the departure and arrival dates and times of flights
+-- along with timezone info
+-- **DATETIMEOFFSET
+
+-- created a stored procedure
+-- supply stored procedure with multiple event names and their dates as parameters
+-- **Use a user-defined table type.
+
+
+
+
