@@ -171,4 +171,20 @@ GO
 -- even if insert into the Audit.Log table fails
 IF (XACT_STATE()) = 1
 
+-- Territory, Year and Profit.
+-- create report that displays the profit made by each territory for each year and its preceding year
+SELECT Territory, Year, Profit
+LAG(Profit, 1, 0) OVER(PARTITION BY Territory ORDER BY Year) AS NextProfit
+FROM Profits
+
+-- send data to an NVARCHAR(MAX) variable named @var
+-- success of a cast to a decimal (36, 9)
+SELECT
+IIF(TRY_PARSE(@var AS decimal(36,9)) IS NULL, 'True', 'False')
+AS BadCast
+
+-- FILESTREAM-enabled database
+-- will update multiple tables within a transaction
+-- if stored procedure raises a runtime error, the entire transaction is terminated and rolled back
+SET XACT_ABORT ON
 
