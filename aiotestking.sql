@@ -209,6 +209,13 @@ add TotalItems as ItemsInStore + ItemsInWarehouse
 -- supply stored procedure with multiple event names and their dates as parameters
 -- **Use a user-defined table type.
 
+select orderid, sum(extendedamount) as TotalSales
+from Sales.Details
+group by orderid
+order by orderid;
 
-
-
+-- must include customer who have not placed any orders
+select customername, orderdate
+from customers
+left outer join orders
+on customers.customerid = orders.customerid;
