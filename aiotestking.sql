@@ -219,3 +219,35 @@ select customername, orderdate
 from customers
 left outer join orders
 on customers.customerid = orders.customerid;
+
+-- store procedure, if it raises a run-time error, entire transaction is terminated and rolled back
+set xact_abort on
+
+-- NCI_OrderDetail_CustomerID non-clustered index is fragmented
+-- need to reduce fragmentation
+-- need to achieve this goal without taking the index offline
+alter index NCI_OrderDetail_CustomerID on OrderDetail.CustomerID REORGANIZE
+
+-- future mods to table definition will not affect applications' ability to access data
+-- new object can accomodate data retrieval and data modification
+-- minimum amount of changes to the existing application
+VIEWS
+
+-- batch process
+-- return results on supplied parameteres
+-- enables the returned result set to perform a join with a table
+Table-valued user-defined function
+
+-- create a stored procedure
+-- accepts a single input parameter for customerID
+-- returns a single integer to the calling application
+DECLARE @CustomerRatingByCustomer INT
+EXECUTE dbo.GetCustomerRating @CustomerID = 1745,
+@CustomerRating = @CustomerRatingByCustomer OUPUT
+
+Create Procedure dbo.GetCustomerRating @Customer INT, @CustomerRating INT OUTPUT
+AS
+SET NOCOUNT ON SELECT @CustomerRating = CustomerOrders/CustomerValue
+FROM Customers WHERE CustomerID = @CustomerID
+return
+GO
