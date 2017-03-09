@@ -251,3 +251,57 @@ SET NOCOUNT ON SELECT @CustomerRating = CustomerOrders/CustomerValue
 FROM Customers WHERE CustomerID = @CustomerID
 return
 GO
+
+-- fixed precision and scale
+numeric
+
+-- equivalent
+NOT IN ()
+<> ALL ()
+
+-- equivalent
+<> SOME ()
+<> ANY ()
+
+-- unique constaint on the combination of productname and createddatetime
+-- remove all duplicates of the products table based on the productname column
+-- retain only the newest products row
+with CTEDupRecords
+as
+(
+	select max(createdDateTime) as createdDateTime, ProductName
+	from products
+	group by ProductName
+	having count(*) > 1
+)
+delete p
+from products p
+join CTEDupRecords cte ON
+cte.ProductName = p.ProductName
+and cte.createdDateTime > p.createdDateTime
+;
+
+-- need to ensure that callers that do not have permissions on database1 or database2 can execute the stored procedure
+EXECUTE AS OWNER
+
+-- prevent from deleting records in the Sales schema
+create a custom database role that inclues the users.
+deny delete permissions on the Sales schema for the custom database role.
+
+-- need to ensure that the minimum amount of disk space is used to store the data in the Product table
+Implement page-level compression
+
+-- UDF. need to improve performance of query
+Drop the UDF and rewrite the report query as:
+WITH cte(CustomerID, LastOrderDate) AS (
+select CustomerID, max(OrderDate) as [LastOrderDate]
+from sales.salesorder
+
+group by customerID
+)
+select c.customername
+from cte
+inner join sales.customer country
+on cte.customerid = c.customerID
+where cte.LastOrderDate < dateadd(day, -90, getdate())
+
